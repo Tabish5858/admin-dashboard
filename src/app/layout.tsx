@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   description: 'Admin dashboard for product management',
 }
 
+// src/app/layout.tsx
 export default function RootLayout({
   children,
 }: {
@@ -20,5 +21,5 @@ export default function RootLayout({
         {children}
       </body>
     </html>
-  )
+  );
 }

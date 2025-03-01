@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 
 interface CountdownTimerProps {
   endDate: Date
@@ -9,32 +10,63 @@ interface CountdownTimerProps {
 
 export default function CountdownTimer({ endDate }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState('')
+  const [isExpired, setIsExpired] = useState(false)
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    const calculateTimeLeft = () => {
       const now = new Date().getTime()
       const end = new Date(endDate).getTime()
       const distance = end - now
+
+      if (distance < 0) {
+        setIsExpired(true)
+        setTimeLeft('EXPIRED')
+        return true
+      }
 
       const days = Math.floor(distance / (1000 * 60 * 60 * 24))
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
       const seconds = Math.floor((distance % (1000 * 60)) / 1000)
 
-      setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`)
+      const timeString = [
+        days && `${days}d`,
+        hours && `${hours}h`,
+        minutes && `${minutes}m`,
+        `${seconds}s`
+      ].filter(Boolean).join(' ')
 
-      if (distance < 0) {
-        clearInterval(timer)
-        setTimeLeft('EXPIRED')
-      }
-    }, 1000)
+      setTimeLeft(timeString)
+      return false
+    }
+
+    // Initial calculation
+    const isInitiallyExpired = calculateTimeLeft()
+
+    if (isInitiallyExpired) {
+      return
+    }
+
+    // Set up interval
+    const timer = setInterval(calculateTimeLeft, 1000)
 
     return () => clearInterval(timer)
   }, [endDate])
 
   return (
-    <div className="text-sm font-mono">
-      Sale ends in: {timeLeft}
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`text-sm font-mono px-3 py-1 rounded-full inline-flex items-center ${
+        isExpired
+          ? 'bg-red-100 text-red-800'
+          : 'bg-green-100 text-green-800'
+      }`}
+    >
+      <span className={`w-2 h-2 rounded-full mr-2 ${
+        isExpired ? 'bg-red-500' : 'bg-green-500 animate-pulse'
+      }`} />
+      {isExpired ? 'Sale Ended' : `Sale ends in: ${timeLeft}`}
+    </motion.div>
   )
 }

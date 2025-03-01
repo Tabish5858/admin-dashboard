@@ -1,29 +1,20 @@
 // src/lib/store/useAuthStore.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import {
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  User as FirebaseUser,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth"; // Add this import
 import { auth } from "@/lib/firebase";
 
-// src/lib/store/useAuthStore.ts
 interface User {
   id: string;
   email: string | null;
-  name?: string;
-  isAdmin?: boolean; // Add this field
 }
 
-export interface AuthState {
+interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  setError: (error: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -39,25 +30,33 @@ export const useAuthStore = create<AuthState>()(
             email,
             password
           );
-          const { user: firebaseUser } = userCredential;
-
-          // Check if the user is admin (you can add more conditions)
-          const isAdmin = email.toLowerCase().includes("admin");
 
           set({
             user: {
-              id: firebaseUser.uid,
-              email: firebaseUser.email,
-              name: firebaseUser.displayName || undefined,
-              isAdmin,
+              id: userCredential.user.uid,
+              email: userCredential.user.email,
             },
             isAuthenticated: true,
             error: null,
           });
+          localStorage.setItem(
+            "auth-storage",
+            JSON.stringify({
+              state: {
+                user: {
+                  id: userCredential.user.uid,
+                  email: userCredential.user.email,
+                },
+                isAuthenticated: true,
+              },
+            })
+          );
         } catch (error) {
+          console.error("Login error:", error);
           set({
-            error: error instanceof Error ? error.message : "Login failed",
+            user: null,
             isAuthenticated: false,
+            error: error instanceof Error ? error.message : "Login failed",
           });
           throw error;
         }
@@ -65,38 +64,23 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           await signOut(auth);
-          set({ user: null, isAuthenticated: false, error: null });
-        } catch (error) {
           set({
-            error: error instanceof Error ? error.message : "Logout failed",
+            user: null,
+            isAuthenticated: false,
+            error: null,
           });
+        } catch (error) {
+          set({ error: "Logout failed" });
           throw error;
         }
       },
-      setError: (error) => set({ error }),
     }),
     {
       name: "auth-storage",
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );
-
-// Listen to auth state changes
-onAuthStateChanged(auth, (user: FirebaseUser | null) => {
-  if (user) {
-    useAuthStore.getState().setError(null);
-    useAuthStore.setState({
-      user: {
-        id: user.uid,
-        email: user.email,
-        name: user.displayName || undefined,
-      },
-      isAuthenticated: true,
-    });
-  } else {
-    useAuthStore.setState({
-      user: null,
-      isAuthenticated: false,
-    });
-  }
-});

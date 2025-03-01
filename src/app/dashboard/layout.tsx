@@ -3,26 +3,39 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/useAuthStore'
-import { Header } from '@/components/dashboard/Header'
-import { Sidebar } from '@/components/dashboard/Sidebar'
+import { Header } from '@/app/dashboard/Header'
+import { Sidebar } from '@/app/dashboard/Sidebar'
 
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
-  const router = useRouter()
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login')
+    const authData = localStorage.getItem('auth-storage');
+    if (!authData) {
+      router.replace('/login');
+      return;
     }
-  }, [isAuthenticated, router])
+
+    try {
+      const { state } = JSON.parse(authData);
+      if (!state.isAuthenticated) {
+        router.replace('/login');
+      }
+    } catch (error) {
+      console.error('Error parsing auth data:', error);
+      router.replace('/login');
+    }
+  }, [router]);
 
   if (!isAuthenticated) {
-    return null
+    return null;
   }
+
 
   return (
     <div className="min-h-screen bg-gray-50" suppressHydrationWarning>
