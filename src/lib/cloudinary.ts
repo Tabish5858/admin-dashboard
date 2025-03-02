@@ -5,10 +5,11 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
   try {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "");
+    // Use unsigned upload preset
+    formData.append("upload_preset", "admindashboard"); // Use your preset name directly
 
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      `https://api.cloudinary.com/v1_1/doii2gh9d/image/upload`,
       {
         method: "POST",
         body: formData,
