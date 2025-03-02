@@ -1,4 +1,3 @@
-// src/app/(auth)/login/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,10 +19,9 @@ export default function LoginPage() {
     setMounted(true);
   }, []);
 
-// Fix the typo in router.relpace
 useEffect(() => {
   if (isAuthenticated && mounted) {
-    router.replace('/dashboard'); // Fixed typo from relpace to replace
+    router.replace('/dashboard');
   }
 }, [isAuthenticated, router, mounted]);
 
@@ -72,7 +70,6 @@ useEffect(() => {
     return null;
   }
 
-    // Render null if already authenticated
     if (isAuthenticated) {
       return null;
     }

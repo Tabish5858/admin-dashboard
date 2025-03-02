@@ -1,4 +1,3 @@
-// src/components/products/CountdownTimer.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -40,14 +39,11 @@ export default function CountdownTimer({ endDate }: CountdownTimerProps) {
       return false
     }
 
-    // Initial calculation
     const isInitiallyExpired = calculateTimeLeft()
 
     if (isInitiallyExpired) {
       return
     }
-
-    // Set up interval
     const timer = setInterval(calculateTimeLeft, 1000)
 
     return () => clearInterval(timer)

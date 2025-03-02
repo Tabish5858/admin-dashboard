@@ -15,7 +15,6 @@ export default function Home() {
           </div>
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-5xl">
-            {/* Feature Card 1 */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
                 <svg
@@ -40,7 +39,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature Card 2 */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
                 <svg
@@ -65,7 +63,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature Card 3 */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
                 <svg

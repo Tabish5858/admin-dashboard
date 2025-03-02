@@ -8,14 +8,12 @@ export default function DashboardPage() {
   const user = useAuthStore(state => state.user)
   const products = useProductStore(state => state.products)
 
-  // Calculate some basic stats
   const totalProducts = products.length
   const productsOnSale = products.filter(p => p.salePrice).length
   const averagePrice = products.reduce((acc, p) => acc + p.price, 0) / totalProducts || 0
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -25,7 +23,6 @@ export default function DashboardPage() {
         <p className="text-indigo-100">Here&apos;s an overview of your store</p>
       </motion.div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:text-start text-center">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -58,7 +55,6 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

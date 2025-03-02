@@ -1,4 +1,3 @@
-// src/components/dashboard/Header.tsx
 'use client'
 
 import { useAuthStore } from '@/lib/store/useAuthStore'

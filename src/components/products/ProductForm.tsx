@@ -83,14 +83,12 @@ export default function ProductForm() {
         return
       }
 
-      // Remove sale-related fields if not on sale
       const productData = {
         ...data,
         imageUrl,
         createdAt: new Date()
       }
 
-      // Only include sale fields if the product is on sale
       if (isOnSale && data.salePrice) {
         productData.salePrice = data.salePrice
         if (data.saleEndsAt) {
@@ -154,7 +152,6 @@ export default function ProductForm() {
           )}
         </div>
 
-        {/* Sale Toggle */}
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
@@ -168,7 +165,6 @@ export default function ProductForm() {
           </label>
         </div>
 
-        {/* Sale Fields */}
         {isOnSale && (
           <div className="space-y-4">
             <div>

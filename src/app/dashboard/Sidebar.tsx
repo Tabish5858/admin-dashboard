@@ -17,7 +17,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Hamburger Button (visible only on mobile/tablet) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="lg:hidden fixed top-4 left-4 z-20 p-2 rounded-md bg-white shadow-md"
@@ -47,7 +46,6 @@ export function Sidebar() {
         </svg>
       </button>
 
-      {/* Overlay for mobile/tablet */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -60,7 +58,6 @@ export function Sidebar() {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
       <motion.nav
         className={`
           fixed lg:static top-0 left-0 z-30 h-full

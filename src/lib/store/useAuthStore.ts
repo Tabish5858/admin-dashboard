@@ -1,7 +1,6 @@
-// src/lib/store/useAuthStore.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth"; // Add this import
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 interface User {

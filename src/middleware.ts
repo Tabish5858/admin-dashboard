@@ -5,7 +5,6 @@ export function middleware(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname === "/login";
   const isDashboardPage = request.nextUrl.pathname.startsWith("/dashboard");
 
-  // For client-side auth, rely on the client middleware check
   if (typeof window !== "undefined") {
     const authData = localStorage.getItem("auth-storage");
     if (authData) {

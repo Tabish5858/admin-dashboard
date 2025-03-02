@@ -1,12 +1,8 @@
-/**
- * Client-side Cloudinary configuration and upload utilities
- */
 export const uploadToCloudinary = async (file: File): Promise<string> => {
   try {
     const formData = new FormData();
     formData.append("file", file);
-    // Use unsigned upload preset
-    formData.append("upload_preset", "admindashboard"); // Use your preset name directly
+    formData.append("upload_preset", "admindashboard"); 
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/doii2gh9d/image/upload`,

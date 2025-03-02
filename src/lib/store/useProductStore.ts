@@ -64,7 +64,6 @@ export const useProductStore = create<ProductState>((set, get) => ({
     try {
       set({ loading: true });
 
-      // Remove undefined values before sending to Firestore
       const productData = Object.fromEntries(
         Object.entries(product).filter(([_, value]) => value !== undefined)
       );

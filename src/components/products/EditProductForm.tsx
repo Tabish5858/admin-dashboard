@@ -46,7 +46,6 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
     reset({
       ...product,
       salePrice: product.salePrice || undefined,
-      // Convert Date object to ISO string for datetime-local input
       saleEndsAt: product.saleEndsAt ? product.saleEndsAt.toISOString().slice(0, 16) : undefined
     })
     setImageUrl(product.imageUrl)
@@ -56,10 +55,8 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
   const handleSaleToggle = (checked: boolean) => {
     setIsOnSale(checked)
     if (!checked) {
-      // When turning off sale, immediately clear the sale fields
       setValue('salePrice', undefined)
       setValue('saleEndsAt', undefined)
-      // Mark form as dirty to enable save button
       setValue('name', product.name, { shouldDirty: true })
     }
   }
@@ -101,7 +98,6 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
 
   const onSubmit = async (data: ProductFormData) => {
     try {
-      // Validate sale price if product is on sale
       const salePriceValidation = validateSalePrice(data.salePrice)
       if (typeof salePriceValidation === 'string') {
         setUploadError(salePriceValidation)
@@ -112,7 +108,6 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
       await updateProduct(product.id, {
         ...data,
         imageUrl,
-        // Explicitly set to undefined when not on sale to remove from database
         salePrice: isOnSale ? data.salePrice : null,
         saleEndsAt: isOnSale && data.saleEndsAt ? new Date(data.saleEndsAt) : null
       })
@@ -135,7 +130,6 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
     >
       <h2 className="text-xl font-bold">Edit Product</h2>
 
-      {/* Image Upload Section */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Product Image
@@ -200,7 +194,6 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
         </div>
       </div>
 
-      {/* Sale Options */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
