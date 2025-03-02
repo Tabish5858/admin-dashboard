@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/products/ProductForm.tsx
 'use client'
 
@@ -9,11 +8,21 @@ import { productSchema, ProductFormData } from '@/lib/schemas/product'
 import { useProductStore } from '@/lib/store/useProductStore'
 import { useState } from 'react'
 import { CldUploadWidget } from 'next-cloudinary'
-import {Image} from "next/image"
+import Image from 'next/image'
+
+interface CloudinaryResult {
+  info: {
+    secure_url: string;
+    public_id: string;
+  };
+  event: 'success';
+}
 
 export default function ProductForm() {
   const addProduct = useProductStore(state => state.addProduct)
   const [imageUrl, setImageUrl] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   const {
     register,
@@ -36,17 +45,46 @@ export default function ProductForm() {
 
   const onSubmit = async (data: ProductFormData) => {
     try {
+      if (!imageUrl) {
+        setUploadError('Product image is required')
+        return
+      }
+
       await addProduct({
         ...data,
         imageUrl,
         saleEndsAt: data.saleEndsAt ? new Date(data.saleEndsAt) : undefined
       })
+
+      // Reset form state
       reset()
       setImageUrl('')
+      setUploadError('')
     } catch (error) {
       console.error('Failed to add product:', error)
+      setUploadError('Failed to add product. Please try again.')
     }
   }
+
+  const handleImageUpload = (result: CloudinaryResult) => {
+    try {
+      setIsUploading(true);
+      setUploadError('');
+
+      if (result.event !== 'success') {
+        throw new Error('Upload failed');
+      }
+
+      const uploadedUrl = result.info.secure_url;
+      setImageUrl(uploadedUrl);
+      setValue('imageUrl', uploadedUrl);
+      setIsUploading(false);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError('Failed to upload image. Please try again.');
+      setIsUploading(false);
+    }
+  };
 
   return (
     <motion.form
@@ -80,6 +118,7 @@ export default function ProductForm() {
             <input
               type="number"
               step="0.01"
+              min="0"
               {...register('price', { valueAsNumber: true })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="0.00"
@@ -96,6 +135,7 @@ export default function ProductForm() {
             <input
               type="number"
               step="0.01"
+              min="0"
               {...register('salePrice', { valueAsNumber: true })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               placeholder="0.00"
@@ -113,7 +153,10 @@ export default function ProductForm() {
             </label>
             <input
               type="datetime-local"
-              {...register('saleEndsAt')}
+              {...register('saleEndsAt', {
+                setValueAs: (value: string) => (value ? new Date(value) : undefined)
+              })}
+              min={new Date().toISOString().slice(0, 16)}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
             {errors.saleEndsAt && (
@@ -142,10 +185,12 @@ export default function ProductForm() {
             Product Image
           </label>
           <CldUploadWidget
-            uploadPreset="your_preset"
-            onUpload={(result: any) => {
-              setImageUrl(result.info.secure_url)
-              setValue('imageUrl', result.info.secure_url)
+            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "my_uploads"}
+            onUpload={(result) => handleImageUpload(result as CloudinaryResult)}
+            options={{
+              maxFiles: 1,
+              resourceType: "auto",
+              clientAllowedFormats: ["jpg", "jpeg", "png", "webp"]
             }}
           >
             {({ open }) => (
@@ -153,18 +198,24 @@ export default function ProductForm() {
                 <button
                   type="button"
                   onClick={() => open()}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  disabled={isUploading}
+                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Upload Image
+                  {isUploading ? 'Uploading...' : 'Upload Image'}
                 </button>
                 {imageUrl && (
                   <div className="relative w-32 h-32">
                     <Image
                       src={imageUrl}
                       alt="Product preview"
-                      className="w-full h-full object-cover rounded-md"
+                      fill
+                      className="object-cover rounded-md"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                   </div>
+                )}
+                {uploadError && (
+                  <p className="mt-1 text-xs text-red-500">{uploadError}</p>
                 )}
               </div>
             )}
@@ -177,14 +228,30 @@ export default function ProductForm() {
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isUploading}
         className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isSubmitting ? (
           <span className="flex items-center justify-center">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
             Adding Product...
           </span>
