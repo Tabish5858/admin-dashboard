@@ -1,4 +1,4 @@
-// src/components/products/ProductForm.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useForm } from 'react-hook-form'
@@ -9,14 +9,6 @@ import { useProductStore } from '@/lib/store/useProductStore'
 import { useState } from 'react'
 import { CldUploadWidget } from 'next-cloudinary'
 import Image from 'next/image'
-
-interface CloudinaryResult {
-  info: {
-    secure_url: string;
-    public_id: string;
-  };
-  event: 'success';
-}
 
 export default function ProductForm() {
   const addProduct = useProductStore(state => state.addProduct)
@@ -50,13 +42,17 @@ export default function ProductForm() {
         return
       }
 
+      setIsUploading(true); // Show loading state
+
+
       await addProduct({
         ...data,
         imageUrl,
-        saleEndsAt: data.saleEndsAt ? new Date(data.saleEndsAt) : undefined
+        // saleEndsAt is already a Date object due to setValueAs transform
+        saleEndsAt: data.saleEndsAt
       })
 
-      // Reset form state
+
       reset()
       setImageUrl('')
       setUploadError('')
@@ -64,24 +60,29 @@ export default function ProductForm() {
       console.error('Failed to add product:', error)
       setUploadError('Failed to add product. Please try again.')
     }
+    finally {
+      setIsUploading(false);
+    }
   }
 
-  const handleImageUpload = (result: CloudinaryResult) => {
-    try {
-      setIsUploading(true);
-      setUploadError('');
+  const handleImageUpload = async (result: any) => {
+    console.log('Upload result:', result); // Debug log
 
-      if (result.event !== 'success') {
+    setIsUploading(true);
+    setUploadError('');
+
+    try {
+      if (result.event !== 'success' || !result?.info?.secure_url) {
         throw new Error('Upload failed');
       }
 
       const uploadedUrl = result.info.secure_url;
       setImageUrl(uploadedUrl);
       setValue('imageUrl', uploadedUrl);
-      setIsUploading(false);
     } catch (error) {
       console.error('Upload error:', error);
       setUploadError('Failed to upload image. Please try again.');
+    } finally {
       setIsUploading(false);
     }
   };
@@ -146,24 +147,24 @@ export default function ProductForm() {
           </div>
         </div>
 
-        {watch('salePrice') && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Sale End Date
-            </label>
-            <input
-              type="datetime-local"
-              {...register('saleEndsAt', {
-                setValueAs: (value: string) => (value ? new Date(value) : undefined)
-              })}
-              min={new Date().toISOString().slice(0, 16)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-            {errors.saleEndsAt && (
-              <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
-            )}
-          </div>
-        )}
+{watch('salePrice') && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700">
+      Sale End Date
+    </label>
+    <input
+      type="datetime-local"
+      {...register('saleEndsAt', {
+        setValueAs: (value: string) => (value ? new Date(value) : undefined)
+      })}
+      min={new Date().toISOString().slice(0, 16)}
+      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+    />
+    {errors.saleEndsAt && (
+      <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
+    )}
+  </div>
+)}
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
@@ -185,19 +186,23 @@ export default function ProductForm() {
             Product Image
           </label>
           <CldUploadWidget
-            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "my_uploads"}
-            onUpload={(result) => handleImageUpload(result as CloudinaryResult)}
-            options={{
-              maxFiles: 1,
-              resourceType: "auto",
-              clientAllowedFormats: ["jpg", "jpeg", "png", "webp"]
-            }}
-          >
+  cloudName={process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
+  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+  onUpload={handleImageUpload}
+  options={{
+    maxFiles: 1,
+    sources: ["local"],
+    multiple: false,
+    resourceType: "image",
+    clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+    maxFileSize: 5000000, // 5MB
+  }}
+>
             {({ open }) => (
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => open()}
+                  onClick={() => open?.()}
                   disabled={isUploading}
                   className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -220,9 +225,6 @@ export default function ProductForm() {
               </div>
             )}
           </CldUploadWidget>
-          {errors.imageUrl && (
-            <p className="mt-1 text-xs text-red-500">{errors.imageUrl.message}</p>
-          )}
         </div>
       </div>
 
