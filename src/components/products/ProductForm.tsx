@@ -68,20 +68,23 @@ export default function ProductForm() {
   const handleImageUpload = async (result: any) => {
     console.log('Upload result:', result); // Debug log
 
-    setIsUploading(true);
-    setUploadError('');
+    if (!result?.info?.secure_url) {
+      console.error('Upload failed - no secure_url');
+      setUploadError('Upload failed - please try again');
+      return;
+    }
 
     try {
-      if (result.event !== 'success' || !result?.info?.secure_url) {
-        throw new Error('Upload failed');
-      }
+      setIsUploading(true);
+      setUploadError('');
 
       const uploadedUrl = result.info.secure_url;
+      console.log('Successfully uploaded:', uploadedUrl);
       setImageUrl(uploadedUrl);
       setValue('imageUrl', uploadedUrl);
     } catch (error) {
       console.error('Upload error:', error);
-      setUploadError('Failed to upload image. Please try again.');
+      setUploadError('Failed to process uploaded image');
     } finally {
       setIsUploading(false);
     }
@@ -186,45 +189,46 @@ export default function ProductForm() {
             Product Image
           </label>
           <CldUploadWidget
-  cloudName={process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
-  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+  cloudName="doii2gh9d"
+  uploadPreset="admindashboard" // Changed from "my_uploads" to match your preset name
   onUpload={handleImageUpload}
   options={{
     maxFiles: 1,
     sources: ["local"],
     multiple: false,
+    folder: 'samples/ecommerce', // Added to match your upload preset folder
     resourceType: "image",
     clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
     maxFileSize: 5000000, // 5MB
   }}
 >
-            {({ open }) => (
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => open?.()}
-                  disabled={isUploading}
-                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUploading ? 'Uploading...' : 'Upload Image'}
-                </button>
-                {imageUrl && (
-                  <div className="relative w-32 h-32">
-                    <Image
-                      src={imageUrl}
-                      alt="Product preview"
-                      fill
-                      className="object-cover rounded-md"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
-                )}
-                {uploadError && (
-                  <p className="mt-1 text-xs text-red-500">{uploadError}</p>
-                )}
-              </div>
-            )}
-          </CldUploadWidget>
+  {({ open }) => (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => open?.()}
+        disabled={isUploading}
+        className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isUploading ? 'Uploading...' : 'Upload Image'}
+      </button>
+      {imageUrl && (
+        <div className="relative w-32 h-32">
+          <Image
+            src={imageUrl}
+            alt="Product preview"
+            fill
+            className="object-cover rounded-md"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        </div>
+      )}
+      {uploadError && (
+        <p className="mt-1 text-xs text-red-500">{uploadError}</p>
+      )}
+    </div>
+  )}
+</CldUploadWidget>
         </div>
       </div>
 
