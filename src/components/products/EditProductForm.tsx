@@ -56,8 +56,11 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
   const handleSaleToggle = (checked: boolean) => {
     setIsOnSale(checked)
     if (!checked) {
+      // When turning off sale, immediately clear the sale fields
       setValue('salePrice', undefined)
       setValue('saleEndsAt', undefined)
+      // Mark form as dirty to enable save button
+      setValue('name', product.name, { shouldDirty: true })
     }
   }
 
@@ -109,10 +112,9 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
       await updateProduct(product.id, {
         ...data,
         imageUrl,
-        // Only include sale fields if the product is on sale
-        salePrice: isOnSale ? data.salePrice : undefined,
-        // Convert string date to Date object before saving
-        saleEndsAt: isOnSale && data.saleEndsAt ? new Date(data.saleEndsAt) : undefined
+        // Explicitly set to undefined when not on sale to remove from database
+        salePrice: isOnSale ? data.salePrice : null,
+        saleEndsAt: isOnSale && data.saleEndsAt ? new Date(data.saleEndsAt) : null
       })
       onClose()
     } catch (error) {
