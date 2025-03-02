@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/lib/store/useProductStore.ts
 import { create } from "zustand";
 import {
   collection,
@@ -13,14 +12,15 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-interface Product {
+export interface Product {
   id: string;
   name: string;
   price: number;
   salePrice?: number;
   saleEndsAt?: Date;
   description?: string;
-  imageUrl?: string;
+  imageUrl: string;
+  createdAt: Date;
 }
 
 interface ProductState {
@@ -28,7 +28,7 @@ interface ProductState {
   loading: boolean;
   error: string | null;
   fetchProducts: () => Promise<void>;
-  addProduct: (product: Omit<Product, "id">) => Promise<void>;
+  addProduct: (product: Omit<Product, "id">) => Promise<Product>;
   updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
 }
@@ -63,25 +63,29 @@ export const useProductStore = create<ProductState>((set, get) => ({
   addProduct: async (product) => {
     try {
       set({ loading: true });
-      console.log('Adding product to Firestore:', product); // Debug log
-      const docRef = await addDoc(collection(db, "products"), product);
+
+      // Remove undefined values before sending to Firestore
+      const productData = Object.fromEntries(
+        Object.entries(product).filter(([_, value]) => value !== undefined)
+      );
+
+      const docRef = await addDoc(collection(db, "products"), productData);
       const newProduct = { ...product, id: docRef.id };
 
       set((state) => ({
         products: [...state.products, newProduct],
         loading: false,
-        error: null
+        error: null,
       }));
 
-      console.log('Product added successfully:', newProduct); // Debug log
       return newProduct;
     } catch (error) {
-      console.error('Failed to add product:', error);
+      console.error("Failed to add product:", error);
       set({
         error: error instanceof Error ? error.message : "Failed to add product",
-        loading: false
+        loading: false,
       });
-      throw error; // Re-throw to handle in component
+      throw error;
     }
   },
 

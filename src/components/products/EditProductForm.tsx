@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
 import { productSchema, ProductFormData } from '@/lib/schemas/product'
 import { useProductStore } from '@/lib/store/useProductStore'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 import Image from 'next/image'
+import type { Product } from '@/lib/store/useProductStore'
 
 interface EditProductFormProps {
-  product: ProductFormData & { id: string }
+  product: Product
   onClose: () => void
 }
 
@@ -19,6 +21,7 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
   const [imageUrl, setImageUrl] = useState(product.imageUrl)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [isOnSale, setIsOnSale] = useState(Boolean(product.salePrice))
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -26,40 +29,56 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
     handleSubmit,
     setValue,
     watch,
-    formState: { errors }
+    formState: { errors, isDirty },
+    reset
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       ...product,
-      saleEndsAt: product.saleEndsAt ? new Date(product.saleEndsAt).toISOString().slice(0, 16) : undefined
+      salePrice: product.salePrice || undefined,
+      saleEndsAt: product.saleEndsAt ? product.saleEndsAt.toISOString().slice(0, 16) : undefined
     }
   })
 
-  // Watch salePrice to conditionally show sale end date
-  const salePrice = watch('salePrice')
+  const price = watch('price')
 
-  const uploadImage = async (file: File) => {
+  useEffect(() => {
+    reset({
+      ...product,
+      salePrice: product.salePrice || undefined,
+      // Convert Date object to ISO string for datetime-local input
+      saleEndsAt: product.saleEndsAt ? product.saleEndsAt.toISOString().slice(0, 16) : undefined
+    })
+    setImageUrl(product.imageUrl)
+    setIsOnSale(Boolean(product.salePrice))
+  }, [product, reset])
+
+  const handleSaleToggle = (checked: boolean) => {
+    setIsOnSale(checked)
+    if (!checked) {
+      setValue('salePrice', undefined)
+      setValue('saleEndsAt', undefined)
+    }
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadError('Please upload a valid image file (JPG, PNG, or WebP)')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image must be less than 5MB')
+      return
+    }
+
     try {
       setIsUploading(true)
       setUploadError('')
-
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('upload_preset', 'admindashboard')
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/doii2gh9d/image/upload`,
-        {
-          method: 'POST',
-          body: formData
-        }
-      )
-
-      if (!response.ok) throw new Error('Upload failed')
-
-      const data = await response.json()
-      const uploadedUrl = data.secure_url
-      console.log('Successfully uploaded:', uploadedUrl)
+      const uploadedUrl = await uploadToCloudinary(file)
       setImageUrl(uploadedUrl)
       setValue('imageUrl', uploadedUrl)
     } catch (error) {
@@ -70,36 +89,35 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
     }
   }
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setUploadError('Please upload a valid image file (JPG, PNG, or WebP)')
-      return
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Image must be less than 5MB')
-      return
-    }
-
-    await uploadImage(file)
+  const validateSalePrice = (salePrice?: number) => {
+    if (!isOnSale) return true
+    if (!salePrice) return 'Sale price is required when product is on sale'
+    if (salePrice >= price) return 'Sale price must be less than regular price'
+    return true
   }
 
   const onSubmit = async (data: ProductFormData) => {
     try {
+      // Validate sale price if product is on sale
+      const salePriceValidation = validateSalePrice(data.salePrice)
+      if (typeof salePriceValidation === 'string') {
+        setUploadError(salePriceValidation)
+        return
+      }
+
       setIsSubmitting(true)
       await updateProduct(product.id, {
         ...data,
         imageUrl,
-        saleEndsAt: data.saleEndsAt ? new Date(data.saleEndsAt) : undefined
+        // Only include sale fields if the product is on sale
+        salePrice: isOnSale ? data.salePrice : undefined,
+        // Convert string date to Date object before saving
+        saleEndsAt: isOnSale && data.saleEndsAt ? new Date(data.saleEndsAt) : undefined
       })
       onClose()
     } catch (error) {
       console.error('Failed to update product:', error)
+      setUploadError('Failed to update product. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -152,75 +170,110 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
           )}
         </div>
       </div>
-      <div className="flex gap-2">
 
-      {/* Product Details */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Name</label>
-        <input
-          {...register('name')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-        />
-        {errors.name && (
-          <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Price</label>
-        <input
-          type="number"
-          step="0.01"
-          {...register('price', { valueAsNumber: true })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-        />
-        {errors.price && (
-          <p className="mt-1 text-xs text-red-500">{errors.price.message}</p>
-        )}
-      </div>
-      </div>
-<div className="flex gap-2">
-
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Sale Price</label>
-        <input
-          type="number"
-          step="0.01"
-          {...register('salePrice', { valueAsNumber: true })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          />
-      </div>
-       {/* Sale End Date - Only show when sale price is set */}
-       {salePrice > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Sale End Date
-          </label>
+      <div className="flex gap-4">
+        {/* Product Details */}
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700">Name</label>
           <input
-            type="datetime-local"
-            {...register('saleEndsAt', {
-              setValueAs: (value: string) => value ? new Date(value) : undefined
-            })}
-            min={new Date().toISOString().slice(0, 16)}
+            {...register('name')}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
-          {errors.saleEndsAt && (
-            <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
+          {errors.name && (
+            <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
           )}
         </div>
-      )}
+
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700">Price</label>
+          <input
+            type="number"
+            step="0.01"
+            {...register('price', { valueAsNumber: true })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
+          {errors.price && (
+            <p className="mt-1 text-xs text-red-500">{errors.price.message}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Sale Options */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isOnSale"
+              checked={isOnSale}
+              onChange={(e) => handleSaleToggle(e.target.checked)}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label htmlFor="isOnSale" className="text-sm font-medium text-gray-700">
+              Put this product on sale
+            </label>
           </div>
+          {product.salePrice && !isOnSale && (
+            <span className="text-xs text-gray-500">
+              This will remove the product from sale
+            </span>
+          )}
+        </div>
 
+        {isOnSale && (
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Sale Price
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                {...register('salePrice', {
+                  valueAsNumber: true,
+                  validate: validateSalePrice
+                })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              {errors.salePrice && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.salePrice.message}
+                </p>
+              )}
+            </div>
 
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Sale End Date
+              </label>
+              <input
+                type="datetime-local"
+                {...register('saleEndsAt')}
+                min={new Date().toISOString().slice(0, 16)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              {errors.saleEndsAt && (
+                <p className="mt-1 text-xs text-red-500">
+                  {errors.saleEndsAt.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Description</label>
+        <label className="block text-sm font-medium text-gray-700">
+          Description
+        </label>
         <textarea
           {...register('description')}
           rows={3}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
         />
+        {errors.description && (
+          <p className="mt-1 text-xs text-red-500">{errors.description.message}</p>
+        )}
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
@@ -233,7 +286,7 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
         </button>
         <button
           type="submit"
-          disabled={isSubmitting || isUploading}
+          disabled={isSubmitting || isUploading || !isDirty}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
         >
           {isSubmitting ? 'Saving...' : 'Save Changes'}

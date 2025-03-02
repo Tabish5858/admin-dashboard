@@ -1,13 +1,7 @@
-import { v2 as cloudinary } from "cloudinary";
-
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-  api_secret: process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET,
-  secure: true,
-});
-
-export const uploadToCloudinary = async (file: File) => {
+/**
+ * Client-side Cloudinary configuration and upload utilities
+ */
+export const uploadToCloudinary = async (file: File): Promise<string> => {
   try {
     // Create form data
     const formData = new FormData();
@@ -17,7 +11,7 @@ export const uploadToCloudinary = async (file: File) => {
       process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || ""
     );
 
-    // Upload to Cloudinary
+    // Upload to Cloudinary using unsigned upload
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
       {
@@ -26,6 +20,10 @@ export const uploadToCloudinary = async (file: File) => {
       }
     );
 
+    if (!response.ok) {
+      throw new Error("Failed to upload image");
+    }
+
     const data = await response.json();
     return data.secure_url;
   } catch (error) {
@@ -33,5 +31,3 @@ export const uploadToCloudinary = async (file: File) => {
     throw error;
   }
 };
-
-export default cloudinary;

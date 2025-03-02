@@ -7,12 +7,14 @@ import { productSchema, ProductFormData } from '@/lib/schemas/product'
 import { useProductStore } from '@/lib/store/useProductStore'
 import { useState, useRef } from 'react'
 import Image from 'next/image'
+import { uploadToCloudinary } from '../../lib/cloudinary'
 
 export default function ProductForm() {
   const addProduct = useProductStore(state => state.addProduct)
   const [imageUrl, setImageUrl] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [isOnSale, setIsOnSale] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -20,7 +22,6 @@ export default function ProductForm() {
     handleSubmit,
     reset,
     setValue,
-    watch,
     formState: { errors, isSubmitting }
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -34,28 +35,20 @@ export default function ProductForm() {
     }
   })
 
+  const handleSaleToggle = (checked: boolean) => {
+    setIsOnSale(checked)
+    if (!checked) {
+      setValue('salePrice', undefined)
+      setValue('saleEndsAt', undefined)
+    }
+  }
+
   const uploadImage = async (file: File) => {
     try {
       setIsUploading(true)
       setUploadError('')
 
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('upload_preset', 'admindashboard')
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/doii2gh9d/image/upload`,
-        {
-          method: 'POST',
-          body: formData
-        }
-      )
-
-      if (!response.ok) throw new Error('Upload failed')
-
-      const data = await response.json()
-      const uploadedUrl = data.secure_url
-      console.log('Successfully uploaded:', uploadedUrl)
+      const uploadedUrl = await uploadToCloudinary(file)
       setImageUrl(uploadedUrl)
       setValue('imageUrl', uploadedUrl)
     } catch (error) {
@@ -70,13 +63,11 @@ export default function ProductForm() {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setUploadError('Please upload a valid image file (JPG, PNG, or WebP)')
       return
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setUploadError('Image must be less than 5MB')
       return
@@ -92,16 +83,27 @@ export default function ProductForm() {
         return
       }
 
-      await addProduct({
+      // Remove sale-related fields if not on sale
+      const productData = {
         ...data,
         imageUrl,
-        saleEndsAt: data.saleEndsAt ? new Date(data.saleEndsAt) : undefined,
         createdAt: new Date()
-      })
+      }
+
+      // Only include sale fields if the product is on sale
+      if (isOnSale && data.salePrice) {
+        productData.salePrice = data.salePrice
+        if (data.saleEndsAt) {
+          productData.saleEndsAt = data.saleEndsAt
+        }
+      }
+
+      await addProduct(productData)
 
       reset()
       setImageUrl('')
       setUploadError('')
+      setIsOnSale(false)
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
@@ -135,58 +137,71 @@ export default function ProductForm() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Regular Price
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              {...register('price', { valueAsNumber: true })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="0.00"
-            />
-            {errors.price && (
-              <p className="mt-1 text-xs text-red-500">{errors.price.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Sale Price (Optional)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              {...register('salePrice', { valueAsNumber: true })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="0.00"
-            />
-            {errors.salePrice && (
-              <p className="mt-1 text-xs text-red-500">{errors.salePrice.message}</p>
-            )}
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Regular Price
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            {...register('price', { valueAsNumber: true })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            placeholder="0.00"
+          />
+          {errors.price && (
+            <p className="mt-1 text-xs text-red-500">{errors.price.message}</p>
+          )}
         </div>
 
-        {watch('salePrice') && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Sale End Date
-            </label>
-            <input
-              type="datetime-local"
-              {...register('saleEndsAt', {
-                setValueAs: (value: string) => (value ? new Date(value) : undefined)
-              })}
-              min={new Date().toISOString().slice(0, 16)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-            {errors.saleEndsAt && (
-              <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
-            )}
+        {/* Sale Toggle */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="isOnSale"
+            checked={isOnSale}
+            onChange={(e) => handleSaleToggle(e.target.checked)}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          />
+          <label htmlFor="isOnSale" className="text-sm font-medium text-gray-700">
+            Put this product on sale
+          </label>
+        </div>
+
+        {/* Sale Fields */}
+        {isOnSale && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Sale Price
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                {...register('salePrice', { valueAsNumber: true })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="0.00"
+              />
+              {errors.salePrice && (
+                <p className="mt-1 text-xs text-red-500">{errors.salePrice.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Sale End Date
+              </label>
+              <input
+  type="datetime-local"
+  {...register('saleEndsAt')}
+  min={new Date().toISOString().slice(0, 16)}
+  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+/>
+              {errors.saleEndsAt && (
+                <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
+              )}
+            </div>
           </div>
         )}
 

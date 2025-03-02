@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// src/components/products/ProductList.tsx
 'use client'
 
 import { useState } from 'react'
