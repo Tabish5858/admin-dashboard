@@ -63,17 +63,25 @@ export const useProductStore = create<ProductState>((set, get) => ({
   addProduct: async (product) => {
     try {
       set({ loading: true });
+      console.log('Adding product to Firestore:', product); // Debug log
       const docRef = await addDoc(collection(db, "products"), product);
       const newProduct = { ...product, id: docRef.id };
+
       set((state) => ({
         products: [...state.products, newProduct],
         loading: false,
+        error: null
       }));
+
+      console.log('Product added successfully:', newProduct); // Debug log
+      return newProduct;
     } catch (error) {
+      console.error('Failed to add product:', error);
       set({
         error: error instanceof Error ? error.message : "Failed to add product",
-        loading: false,
+        loading: false
       });
+      throw error; // Re-throw to handle in component
     }
   },
 

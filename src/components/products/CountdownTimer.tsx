@@ -57,7 +57,7 @@ export default function CountdownTimer({ endDate }: CountdownTimerProps) {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`text-sm font-mono px-3 py-1 rounded-full inline-flex items-center ${
+      className={`text-sm font-mono px-3 py-1 rounded-full inline-flex items-center w-max ${
         isExpired
           ? 'bg-red-100 text-red-800'
           : 'bg-green-100 text-green-800'

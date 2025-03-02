@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useForm } from 'react-hook-form'
@@ -6,8 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
 import { productSchema, ProductFormData } from '@/lib/schemas/product'
 import { useProductStore } from '@/lib/store/useProductStore'
-import { useState } from 'react'
-import { CldUploadWidget } from 'next-cloudinary'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
 
 export default function ProductForm() {
@@ -15,6 +13,7 @@ export default function ProductForm() {
   const [imageUrl, setImageUrl] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
     register,
@@ -35,6 +34,57 @@ export default function ProductForm() {
     }
   })
 
+  const uploadImage = async (file: File) => {
+    try {
+      setIsUploading(true)
+      setUploadError('')
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', 'admindashboard')
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/doii2gh9d/image/upload`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      )
+
+      if (!response.ok) throw new Error('Upload failed')
+
+      const data = await response.json()
+      const uploadedUrl = data.secure_url
+      console.log('Successfully uploaded:', uploadedUrl)
+      setImageUrl(uploadedUrl)
+      setValue('imageUrl', uploadedUrl)
+    } catch (error) {
+      console.error('Upload error:', error)
+      setUploadError('Failed to upload image. Please try again.')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadError('Please upload a valid image file (JPG, PNG, or WebP)')
+      return
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image must be less than 5MB')
+      return
+    }
+
+    await uploadImage(file)
+  }
+
   const onSubmit = async (data: ProductFormData) => {
     try {
       if (!imageUrl) {
@@ -42,53 +92,24 @@ export default function ProductForm() {
         return
       }
 
-      setIsUploading(true); // Show loading state
-
-
       await addProduct({
         ...data,
         imageUrl,
-        // saleEndsAt is already a Date object due to setValueAs transform
-        saleEndsAt: data.saleEndsAt
+        saleEndsAt: data.saleEndsAt ? new Date(data.saleEndsAt) : undefined,
+        createdAt: new Date()
       })
-
 
       reset()
       setImageUrl('')
       setUploadError('')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     } catch (error) {
       console.error('Failed to add product:', error)
       setUploadError('Failed to add product. Please try again.')
     }
-    finally {
-      setIsUploading(false);
-    }
   }
-
-  const handleImageUpload = async (result: any) => {
-    console.log('Upload result:', result); // Debug log
-
-    if (!result?.info?.secure_url) {
-      console.error('Upload failed - no secure_url');
-      setUploadError('Upload failed - please try again');
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-      setUploadError('');
-
-      const uploadedUrl = result.info.secure_url;
-      console.log('Successfully uploaded:', uploadedUrl);
-      setImageUrl(uploadedUrl);
-      setValue('imageUrl', uploadedUrl);
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadError('Failed to process uploaded image');
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   return (
     <motion.form
@@ -150,24 +171,24 @@ export default function ProductForm() {
           </div>
         </div>
 
-{watch('salePrice') && (
-  <div>
-    <label className="block text-sm font-medium text-gray-700">
-      Sale End Date
-    </label>
-    <input
-      type="datetime-local"
-      {...register('saleEndsAt', {
-        setValueAs: (value: string) => (value ? new Date(value) : undefined)
-      })}
-      min={new Date().toISOString().slice(0, 16)}
-      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-    />
-    {errors.saleEndsAt && (
-      <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
-    )}
-  </div>
-)}
+        {watch('salePrice') && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Sale End Date
+            </label>
+            <input
+              type="datetime-local"
+              {...register('saleEndsAt', {
+                setValueAs: (value: string) => (value ? new Date(value) : undefined)
+              })}
+              min={new Date().toISOString().slice(0, 16)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+            {errors.saleEndsAt && (
+              <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
@@ -188,53 +209,43 @@ export default function ProductForm() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Product Image
           </label>
-          <CldUploadWidget
-  cloudName="doii2gh9d"
-  uploadPreset="admindashboard" // Changed from "my_uploads" to match your preset name
-  onUpload={handleImageUpload}
-  options={{
-    maxFiles: 1,
-    sources: ["local"],
-    multiple: false,
-    folder: 'samples/ecommerce', // Added to match your upload preset folder
-    resourceType: "image",
-    clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-    maxFileSize: 5000000, // 5MB
-  }}
->
-  {({ open }) => (
-    <div className="space-y-2">
-      <button
-        type="button"
-        onClick={() => open?.()}
-        disabled={isUploading}
-        className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isUploading ? 'Uploading...' : 'Upload Image'}
-      </button>
-      {imageUrl && (
-        <div className="relative w-32 h-32">
-          <Image
-            src={imageUrl}
-            alt="Product preview"
-            fill
-            className="object-cover rounded-md"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-        </div>
-      )}
-      {uploadError && (
-        <p className="mt-1 text-xs text-red-500">{uploadError}</p>
-      )}
-    </div>
-  )}
-</CldUploadWidget>
+          <div className="space-y-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUploading ? 'Uploading...' : 'Upload Image'}
+            </button>
+            {imageUrl && (
+              <div className="relative w-32 h-32">
+                <Image
+                  src={imageUrl}
+                  alt="Product preview"
+                  fill
+                  className="object-cover rounded-md"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
+              </div>
+            )}
+            {uploadError && (
+              <p className="mt-1 text-xs text-red-500">{uploadError}</p>
+            )}
+          </div>
         </div>
       </div>
 
       <button
         type="submit"
-        disabled={isSubmitting || isUploading}
+        disabled={isSubmitting}
         className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isSubmitting ? (

@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// src/components/products/EditProductForm.tsx
 'use client'
 
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
 import { productSchema, ProductFormData } from '@/lib/schemas/product'
 import { useProductStore } from '@/lib/store/useProductStore'
+import Image from 'next/image'
 
 interface EditProductFormProps {
   product: ProductFormData & { id: string }
@@ -15,53 +15,229 @@ interface EditProductFormProps {
 
 export default function EditProductForm({ product, onClose }: EditProductFormProps) {
   const updateProduct = useProductStore(state => state.updateProduct)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [imageUrl, setImageUrl] = useState(product.imageUrl)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors }
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
-    defaultValues: product
+    defaultValues: {
+      ...product,
+      saleEndsAt: product.saleEndsAt ? new Date(product.saleEndsAt).toISOString().slice(0, 16) : undefined
+    }
   })
+
+  // Watch salePrice to conditionally show sale end date
+  const salePrice = watch('salePrice')
+
+  const uploadImage = async (file: File) => {
+    try {
+      setIsUploading(true)
+      setUploadError('')
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', 'admindashboard')
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/doii2gh9d/image/upload`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      )
+
+      if (!response.ok) throw new Error('Upload failed')
+
+      const data = await response.json()
+      const uploadedUrl = data.secure_url
+      console.log('Successfully uploaded:', uploadedUrl)
+      setImageUrl(uploadedUrl)
+      setValue('imageUrl', uploadedUrl)
+    } catch (error) {
+      console.error('Upload error:', error)
+      setUploadError('Failed to upload image. Please try again.')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadError('Please upload a valid image file (JPG, PNG, or WebP)')
+      return
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image must be less than 5MB')
+      return
+    }
+
+    await uploadImage(file)
+  }
 
   const onSubmit = async (data: ProductFormData) => {
     try {
-      await updateProduct(product.id, data)
+      setIsSubmitting(true)
+      await updateProduct(product.id, {
+        ...data,
+        imageUrl,
+        saleEndsAt: data.saleEndsAt ? new Date(data.saleEndsAt) : undefined
+      })
       onClose()
     } catch (error) {
       console.error('Failed to update product:', error)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <motion.form
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-4"
       onSubmit={handleSubmit(onSubmit)}
     >
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Edit Product</h2>
-        {/* Form fields similar to ProductForm */}
-        <div className="space-y-4">
-          {/* Add form fields here */}
-        </div>
-        <div className="flex justify-end space-x-2 mt-4">
+      <h2 className="text-xl font-bold">Edit Product</h2>
+
+      {/* Image Upload Section */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Product Image
+        </label>
+        <div className="space-y-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Cancel
+            {isUploading ? 'Uploading...' : 'Change Image'}
           </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Save Changes
-          </button>
+          {imageUrl && (
+            <div className="relative w-32 h-32">
+              <Image
+                src={imageUrl}
+                alt="Product preview"
+                fill
+                className="object-cover rounded-md"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+            </div>
+          )}
+          {uploadError && (
+            <p className="mt-1 text-xs text-red-500">{uploadError}</p>
+          )}
         </div>
+      </div>
+      <div className="flex gap-2">
+
+      {/* Product Details */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Name</label>
+        <input
+          {...register('name')}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        />
+        {errors.name && (
+          <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Price</label>
+        <input
+          type="number"
+          step="0.01"
+          {...register('price', { valueAsNumber: true })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        />
+        {errors.price && (
+          <p className="mt-1 text-xs text-red-500">{errors.price.message}</p>
+        )}
+      </div>
+      </div>
+<div className="flex gap-2">
+
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Sale Price</label>
+        <input
+          type="number"
+          step="0.01"
+          {...register('salePrice', { valueAsNumber: true })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
+      </div>
+       {/* Sale End Date - Only show when sale price is set */}
+       {salePrice > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Sale End Date
+          </label>
+          <input
+            type="datetime-local"
+            {...register('saleEndsAt', {
+              setValueAs: (value: string) => value ? new Date(value) : undefined
+            })}
+            min={new Date().toISOString().slice(0, 16)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
+          {errors.saleEndsAt && (
+            <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
+          )}
+        </div>
+      )}
+          </div>
+
+
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Description</label>
+        <textarea
+          {...register('description')}
+          rows={3}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        />
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 text-gray-600 hover:text-gray-800"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting || isUploading}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+        >
+          {isSubmitting ? 'Saving...' : 'Save Changes'}
+        </button>
       </div>
     </motion.form>
   )
