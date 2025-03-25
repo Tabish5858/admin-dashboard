@@ -8,13 +8,37 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card-background: #ffffff;
+  --card-foreground: #171717;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #1f2937;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #f3f4f6;
+  --accent-foreground: #1f2937;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #4f46e5;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #ededed;
-    --foreground: #0a0a0a;
-  }
+.dark {
+  --background: #121212;
+  --foreground: #e5e7eb;
+  --card-background: #1e1e1e;
+  --card-foreground: #e5e7eb;
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --secondary: #27272a;
+  --secondary-foreground: #e5e7eb;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #e5e7eb;
+  --border: #383838;
+  --input: #383838;
+  --ring: #6366f1;
 }
 
 body {
@@ -26,8 +50,26 @@ body {
 input,
 textarea {
   padding: 10px;
+  background-color: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
 }
 
 button {
   cursor: pointer;
+}
+
+.recharts-wrapper .recharts-cartesian-grid-horizontal line,
+.recharts-wrapper .recharts-cartesian-grid-vertical line {
+  stroke: var(--border);
+}
+
+.recharts-wrapper .recharts-text {
+  fill: var(--foreground);
+}
+
+.recharts-tooltip-wrapper {
+  background-color: var(--card-background) !important;
+  color: var(--card-foreground) !important;
+  border-color: var(--border) !important;
 }

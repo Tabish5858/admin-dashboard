@@ -1,12 +1,12 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { ProductFormData, productSchema } from '@/lib/schemas/product'
+import { useProductStore } from '@/lib/store/useProductStore'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { productSchema, ProductFormData } from '@/lib/schemas/product'
-import { useProductStore } from '@/lib/store/useProductStore'
-import { useState, useRef } from 'react'
 import Image from 'next/image'
+import { useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { uploadToCloudinary } from '../../lib/cloudinary'
 
 export default function ProductForm() {
@@ -115,19 +115,19 @@ export default function ProductForm() {
     <motion.form
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 p-6 bg-white rounded-lg shadow-md"
+      className="space-y-6 p-6 bg-card-background rounded-lg shadow-md"
       onSubmit={handleSubmit(onSubmit)}
     >
-      <h2 className="text-2xl font-bold text-gray-900">Add New Product</h2>
+      <h2 className="text-2xl font-bold text-foreground">Add New Product</h2>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             Product Name
           </label>
           <input
             {...register('name')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-primary focus:ring-primary bg-background text-foreground"
             placeholder="Enter product name"
           />
           {errors.name && (
@@ -136,7 +136,7 @@ export default function ProductForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             Regular Price
           </label>
           <input
@@ -144,7 +144,7 @@ export default function ProductForm() {
             step="0.01"
             min="0"
             {...register('price', { valueAsNumber: true })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-primary focus:ring-primary bg-background text-foreground"
             placeholder="0.00"
           />
           {errors.price && (
@@ -158,9 +158,9 @@ export default function ProductForm() {
             id="isOnSale"
             checked={isOnSale}
             onChange={(e) => handleSaleToggle(e.target.checked)}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            className="h-4 w-4 text-primary focus:ring-primary border-border rounded bg-background"
           />
-          <label htmlFor="isOnSale" className="text-sm font-medium text-gray-700">
+          <label htmlFor="isOnSale" className="text-sm font-medium text-foreground">
             Put this product on sale
           </label>
         </div>
@@ -168,7 +168,7 @@ export default function ProductForm() {
         {isOnSale && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-foreground">
                 Sale Price
               </label>
               <input
@@ -176,7 +176,7 @@ export default function ProductForm() {
                 step="0.01"
                 min="0"
                 {...register('salePrice', { valueAsNumber: true })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-primary focus:ring-primary bg-background text-foreground"
                 placeholder="0.00"
               />
               {errors.salePrice && (
@@ -185,15 +185,15 @@ export default function ProductForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-foreground">
                 Sale End Date
               </label>
               <input
-  type="datetime-local"
-  {...register('saleEndsAt')}
-  min={new Date().toISOString().slice(0, 16)}
-  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-/>
+                type="datetime-local"
+                {...register('saleEndsAt')}
+                min={new Date().toISOString().slice(0, 16)}
+                className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-primary focus:ring-primary bg-background text-foreground"
+              />
               {errors.saleEndsAt && (
                 <p className="mt-1 text-xs text-red-500">{errors.saleEndsAt.message}</p>
               )}
@@ -202,13 +202,13 @@ export default function ProductForm() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             Description
           </label>
           <textarea
             {...register('description')}
             rows={3}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-primary focus:ring-primary bg-background text-foreground"
             placeholder="Enter product description"
           />
           {errors.description && (
@@ -217,7 +217,7 @@ export default function ProductForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Product Image
           </label>
           <div className="space-y-2">
@@ -232,7 +232,7 @@ export default function ProductForm() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? 'Uploading...' : 'Upload Image'}
             </button>
@@ -257,7 +257,7 @@ export default function ProductForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isSubmitting ? (
           <span className="flex items-center justify-center">

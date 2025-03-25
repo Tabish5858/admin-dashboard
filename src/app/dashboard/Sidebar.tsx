@@ -1,9 +1,9 @@
 'use client'
 
+import { AnimatePresence, motion } from 'framer-motion'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 const navigationItems = [
   { name: 'Dashboard', href: '/dashboard' },
@@ -19,11 +19,11 @@ export function Sidebar() {
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-20 p-2 rounded-md bg-white shadow-md"
+        className="lg:hidden fixed top-4 left-4 z-20 p-2 rounded-md bg-card-background shadow-md dark:shadow-gray-800/30"
         aria-label="Toggle menu"
       >
         <svg
-          className="w-6 h-6 text-gray-600"
+          className="w-6 h-6 text-foreground"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -61,8 +61,8 @@ export function Sidebar() {
       <motion.nav
         className={`
           fixed lg:static top-0 left-0 z-30 h-full
-          w-64 bg-white shadow-sm p-4 transition-transform duration-300
-          lg:transform-none
+          w-64 bg-card-background shadow-sm p-4 transition-transform duration-300
+          lg:transform-none border-r border-border
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
@@ -77,8 +77,8 @@ export function Sidebar() {
                 className={`
                   group flex items-center px-2 py-2 text-sm font-medium rounded-md
                   ${isActive
-                    ? 'bg-indigo-50 text-indigo-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-foreground hover:bg-secondary hover:text-foreground'}
                 `}
               >
                 {item.name}

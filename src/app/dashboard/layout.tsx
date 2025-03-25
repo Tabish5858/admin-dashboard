@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store/useAuthStore'
 import { Header } from '@/app/dashboard/Header'
 import { Sidebar } from '@/app/dashboard/Sidebar'
+import { useAuthStore } from '@/lib/store/useAuthStore'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function DashboardLayout({
   children,
@@ -38,7 +38,7 @@ export default function DashboardLayout({
 
 
   return (
-    <div className="min-h-screen bg-gray-50" suppressHydrationWarning>
+    <div className="min-h-screen bg-background transition-colors duration-300" suppressHydrationWarning>
       <Header />
       <div className="flex">
         <Sidebar />
