@@ -67,7 +67,7 @@ export default function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-primary to-primary/60 rounded-lg p-8 shadow-lg"
       >
-        <h2 className="text-3xl font-bold text-primary-foreground mb-2">Welcome back, {user?.email}!</h2>
+        <h2 className="text-3xl font-bold text-primary-foreground mb-2">Welcome back, {user?.name}!</h2>
         <p className="text-primary-foreground/80">Here&apos;s an overview of your store</p>
       </motion.div>
 

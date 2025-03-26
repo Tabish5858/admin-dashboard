@@ -21,6 +21,9 @@ export default function SettingsPage() {
             <h2 className="text-lg font-medium text-foreground">Account Information</h2>
             <div className="mt-3 space-y-2">
               <p className="text-sm text-muted-foreground">
+                Name: <span className="font-medium text-foreground">{user?.name}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
                 Email: <span className="font-medium text-foreground">{user?.email}</span>
               </p>
               <p className="text-sm text-muted-foreground">

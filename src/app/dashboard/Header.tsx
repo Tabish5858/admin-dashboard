@@ -44,7 +44,7 @@ export function Header() {
                 </svg>
               )}
             </button>
-            <span className="text-foreground">{user?.email}</span>
+            <span className="text-foreground">{user?.username || user?.name || 'User'}</span>
             <button
               onClick={handleLogout}
               className="text-foreground hover:text-primary transition-colors"
