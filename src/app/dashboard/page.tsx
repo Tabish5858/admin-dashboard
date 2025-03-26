@@ -4,6 +4,7 @@ import BarChart from '@/components/charts/BarChart'
 import LineChart from '@/components/charts/LineChart'
 import PieChart from '@/components/charts/PieChart'
 import { useAuthStore } from '@/lib/store/useAuthStore'
+import { useOrderStore } from '@/lib/store/useOrderStore'
 import { useProductStore } from '@/lib/store/useProductStore'
 import { motion } from 'framer-motion'
 import { useEffect } from 'react'
@@ -18,26 +19,39 @@ const salesData = [
   { name: 'Jun', sales: 6390, target: 4000 },
 ]
 
-const productCategoryData = [
-  { name: 'Electronics', value: 35 },
-  { name: 'Clothing', value: 25 },
-  { name: 'Home Goods', value: 20 },
-  { name: 'Books', value: 15 },
-  { name: 'Other', value: 5 },
-]
-
 export default function DashboardPage() {
   const user = useAuthStore(state => state.user)
   const products = useProductStore(state => state.products)
   const fetchProducts = useProductStore(state => state.fetchProducts)
+  const orders = useOrderStore(state => state.orders)
+  const fetchOrders = useOrderStore(state => state.fetchOrders)
 
   const totalProducts = products.length
   const productsOnSale = products.filter(p => p.salePrice).length
   const averagePrice = products.reduce((acc, p) => acc + p.price, 0) / totalProducts || 0
 
+  // Calculate product categories dynamically
+  const productCategories = products.reduce((acc, product) => {
+    const category = product.category || 'Uncategorized'
+    acc[category] = (acc[category] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  const productCategoryData = Object.entries(productCategories).map(([name, value]) => ({
+    name,
+    value
+  }))
+
+  // Order-related calculations
+  const totalOrders = orders.length
+  const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0)
+  const pendingOrders = orders.filter(order => order.status === 'pending').length
+  const averageOrderValue = totalRevenue / totalOrders || 0
+
   useEffect(() => {
     fetchProducts()
-  }, [fetchProducts])
+    fetchOrders()
+  }, [fetchProducts, fetchOrders])
 
   // Generate data for products price chart
   const productPriceData = products.slice(0, 8).map(product => ({
@@ -57,7 +71,7 @@ export default function DashboardPage() {
         <p className="text-primary-foreground/80">Here&apos;s an overview of your store</p>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -74,8 +88,8 @@ export default function DashboardPage() {
           transition={{ delay: 0.2 }}
           className="bg-card-background rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
         >
-          <div className="text-muted-foreground text-sm font-medium mb-2">Products on Sale</div>
-          <div className="text-3xl font-bold text-foreground">{productsOnSale}</div>
+          <div className="text-muted-foreground text-sm font-medium mb-2">Total Orders</div>
+          <div className="text-3xl font-bold text-foreground">{totalOrders}</div>
         </motion.div>
 
         <motion.div
@@ -84,8 +98,18 @@ export default function DashboardPage() {
           transition={{ delay: 0.3 }}
           className="bg-card-background rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
         >
-          <div className="text-muted-foreground text-sm font-medium mb-2">Average Price</div>
-          <div className="text-3xl font-bold text-foreground">${averagePrice.toFixed(2)}</div>
+          <div className="text-muted-foreground text-sm font-medium mb-2">Total Revenue</div>
+          <div className="text-3xl font-bold text-foreground">${totalRevenue.toFixed(2)}</div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-card-background rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="text-muted-foreground text-sm font-medium mb-2">Avg Order Value</div>
+          <div className="text-3xl font-bold text-foreground">${averageOrderValue.toFixed(2)}</div>
         </motion.div>
       </div>
 
@@ -130,6 +154,49 @@ export default function DashboardPage() {
           title="Product Price Comparison"
           subtitle="Regular prices vs sale prices"
         />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+        className="bg-card-background rounded-lg p-6 shadow-sm"
+      >
+        <h3 className="text-lg font-semibold text-foreground mb-4">Recent Orders</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Order ID</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Customer</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Date</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.slice(0, 5).map((order) => (
+                <tr key={order.id} className="border-b border-border hover:bg-secondary/5">
+                  <td className="py-3 px-4 text-sm">{order.id}</td>
+                  <td className="py-3 px-4 text-sm">{order.customerName}</td>
+                  <td className="py-3 px-4 text-sm">{new Date(order.orderDate).toLocaleDateString()}</td>
+                  <td className="py-3 px-4 text-sm">${order.total.toFixed(2)}</td>
+                  <td className="py-3 px-4 text-sm">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                              'bg-red-100 text-red-800'
+                      }`}>
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </motion.div>
 
       <motion.div

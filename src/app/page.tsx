@@ -1,5 +1,6 @@
 'use client'
 
+import { useAuthStore } from '@/lib/store/useAuthStore'
 import { useProductStore } from '@/lib/store/useProductStore'
 import { useTheme } from '@/lib/ThemeProvider'
 import { motion } from 'framer-motion'
@@ -14,6 +15,7 @@ export default function HomePage() {
   const isLoading = useProductStore(state => state.loading)
   const { theme, toggleTheme } = useTheme()
   const router = useRouter()
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
 
   useEffect(() => {
     fetchProducts()
@@ -49,9 +51,15 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <Link href="/login" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition mr-4">
-              Sign In
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/dashboard" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition mr-4">
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link href="/login" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition mr-4">
+                Sign In
+              </Link>
+            )}
             <a href="#products" className="bg-transparent border-2 border-white text-white px-6 py-3 rounded-lg font-medium hover:bg-white/10 transition">
               View Products
             </a>
@@ -153,9 +161,11 @@ export default function HomePage() {
       <footer className={`${theme === 'dark' ? 'bg-gray-900 border-t border-gray-800' : 'bg-gray-800'} text-white text-center py-8 mt-12`}>
         <p>&copy; {new Date().getFullYear()} Your Store. All rights reserved.</p>
         <div className="mt-2">
-          <Link href="/login" className="text-blue-300 hover:text-blue-200 mx-2">
-            Admin Login
-          </Link>
+          {!isAuthenticated && (
+            <Link href="/login" className="text-blue-300 hover:text-blue-200 mx-2">
+              Admin Login
+            </Link>
+          )}
         </div>
       </footer>
     </div>

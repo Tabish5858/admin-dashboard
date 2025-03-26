@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { uploadToCloudinary } from '@/lib/cloudinary'
+import { PRODUCT_CATEGORIES, ProductFormData, productSchema } from '@/lib/schemas/product'
+import type { Product } from '@/lib/store/useProductStore'
+import { useProductStore } from '@/lib/store/useProductStore'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { productSchema, ProductFormData } from '@/lib/schemas/product'
-import { useProductStore } from '@/lib/store/useProductStore'
-import { uploadToCloudinary } from '@/lib/cloudinary'
 import Image from 'next/image'
-import type { Product } from '@/lib/store/useProductStore'
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
 
 interface EditProductFormProps {
   product: Product
@@ -177,6 +177,24 @@ export default function EditProductForm({ product, onClose }: EditProductFormPro
           />
           {errors.name && (
             <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
+          )}
+        </div>
+
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700">Category</label>
+          <select
+            {...register('category')}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="">Select a category</option>
+            {PRODUCT_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+          {errors.category && (
+            <p className="mt-1 text-xs text-red-500">{errors.category.message}</p>
           )}
         </div>
 

@@ -129,6 +129,9 @@ export default function ProductDetailPage() {
             className="space-y-6"
           >
             <h1 className="text-3xl md:text-4xl font-bold">{product.name}</h1>
+            <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm mb-4">
+              {product.category}
+            </span>
 
             <div className="flex items-baseline">
               {product.salePrice ? (

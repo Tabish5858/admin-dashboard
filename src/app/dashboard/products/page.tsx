@@ -2,18 +2,32 @@
 
 import ProductForm from '@/components/products/ProductForm'
 import ProductList from '@/components/products/ProductList'
+import { seedProducts } from '@/lib/seedProducts'
 import { useProductStore } from '@/lib/store/useProductStore'
 import { motion } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function ProductsPage() {
   const fetchProducts = useProductStore(state => state.fetchProducts)
   const isLoading = useProductStore(state => state.loading)
   const products = useProductStore(state => state.products)
+  const [isSeeding, setIsSeeding] = useState(false)
 
   useEffect(() => {
     fetchProducts()
   }, [fetchProducts])
+
+  const handleSeed = async () => {
+    try {
+      setIsSeeding(true)
+      await seedProducts()
+      await fetchProducts()
+    } catch (error) {
+      console.error('Error seeding products:', error)
+    } finally {
+      setIsSeeding(false)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -23,6 +37,15 @@ export default function ProductsPage() {
         className="flex justify-between items-center"
       >
         <h1 className="text-2xl font-bold text-foreground">Products</h1>
+        {products.length === 0 && (
+          <button
+            onClick={handleSeed}
+            disabled={isSeeding}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            {isSeeding ? 'Seeding...' : 'Seed Sample Products'}
+          </button>
+        )}
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -52,7 +75,7 @@ export default function ProductsPage() {
             </svg>
             <h3 className="text-xl font-semibold text-foreground mb-2">No Products Found</h3>
             <p className="text-muted-foreground text-center">
-              Start by adding your first product using the form on the left.
+              Start by adding your first product using the form on the left, or click the &quot;Seed Sample Products&quot; button above.
             </p>
           </motion.div>
         ) : (

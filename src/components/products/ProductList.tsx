@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import Image from 'next/image'
 import { useProductStore } from '@/lib/store/useProductStore'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
+import Image from 'next/image'
+import { useState } from 'react'
 import CountdownTimer from './CountdownTimer'
 import EditProductForm from './EditProductForm'
-
 
 export default function ProductList() {
   const products = useProductStore(state => state.products)
@@ -49,6 +48,9 @@ export default function ProductList() {
                 </div>
               )}
               <h3 className="text-lg font-bold">{product.name}</h3>
+              <span className="inline-block bg-primary/10 text-primary px-2 py-1 rounded-full text-sm mb-2">
+                {product.category}
+              </span>
               <p className="text-gray-600">
                 Price: ${product.price}
               </p>

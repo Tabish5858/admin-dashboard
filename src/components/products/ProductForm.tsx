@@ -1,6 +1,6 @@
 'use client'
 
-import { ProductFormData, productSchema } from '@/lib/schemas/product'
+import { PRODUCT_CATEGORIES, ProductFormData, productSchema } from '@/lib/schemas/product'
 import { useProductStore } from '@/lib/store/useProductStore'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -31,7 +31,8 @@ export default function ProductForm() {
       salePrice: undefined,
       saleEndsAt: undefined,
       description: '',
-      imageUrl: ''
+      imageUrl: '',
+      category: ''
     }
   })
 
@@ -132,6 +133,26 @@ export default function ProductForm() {
           />
           {errors.name && (
             <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground">
+            Category
+          </label>
+          <select
+            {...register('category')}
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-primary focus:ring-primary bg-background text-foreground"
+          >
+            <option value="">Select a category</option>
+            {PRODUCT_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+          {errors.category && (
+            <p className="mt-1 text-xs text-red-500">{errors.category.message}</p>
           )}
         </div>
 

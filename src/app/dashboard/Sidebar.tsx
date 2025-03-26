@@ -1,14 +1,21 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
+import {
+  LayoutDashboard,
+  Package,
+  Settings,
+  ShoppingCart
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
 const navigationItems = [
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Products', href: '/dashboard/products' },
-  { name: 'Settings', href: '/dashboard/settings' }
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Products', href: '/dashboard/products', icon: Package },
+  { name: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings }
 ]
 
 export function Sidebar() {

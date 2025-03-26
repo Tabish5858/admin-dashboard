@@ -1,21 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { create } from "zustand";
+import { db } from "@/lib/firebase";
 import {
-  collection,
   addDoc,
-  updateDoc,
+  collection,
   deleteDoc,
   doc,
   getDocs,
-  query,
   orderBy,
+  query,
+  updateDoc,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { create } from "zustand";
 
 export interface Product {
   id: string;
   name: string;
   price: number;
+  category: string;
   salePrice?: number;
   saleEndsAt?: Date;
   description?: string;
